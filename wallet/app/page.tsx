@@ -98,7 +98,7 @@ export default function AuthPage() {
             {storedAccounts.map((acc) => (
               <button
                 key={acc.credentialId}
-                onClick={() => discoverPasskey()}
+                onClick={() => handleLogin(acc.credentialId)}
                 disabled={loading}
                 className="w-full flex items-center gap-3.5 p-4 rounded-2xl bg-white/80 backdrop-blur-sm active:scale-[0.98] transition-all text-left disabled:opacity-30 cursor-pointer"
               >
