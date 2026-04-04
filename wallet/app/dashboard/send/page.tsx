@@ -87,7 +87,7 @@ export default function SendPage() {
   }
 
   return (
-    <div className="flex flex-col max-w-lg mx-auto w-full min-h-screen">
+    <div className="flex flex-col max-w-lg mx-auto w-full h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-5 pb-3">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-white/[0.06] flex items-center justify-center cursor-pointer hover:bg-white/[0.1] transition-colors">
@@ -120,7 +120,7 @@ export default function SendPage() {
           </div>
 
           {/* Numpad + Button — bottom */}
-          <div className="pb-20">
+          <div className="pb-2">
             <AmountInput value={amount} onChange={setAmount} hideDisplay />
             <div className="pt-3">
               <HoldButton
@@ -133,18 +133,44 @@ export default function SendPage() {
         </div>
       )}
 
-      {/* Processing steps */}
+      {/* Processing — animated */}
       {(step === "preparing" || step === "funding_ephemeral" || step === "executing") && (
-        <div className="flex-1 flex flex-col items-center justify-center px-6 space-y-6">
-          <Spinner size={28} />
-          <div className="text-center">
-            <p className="text-white text-[15px] font-medium">{statusMsg}</p>
-            <p className="text-white/25 text-[12px] mt-1">This may take 1-3 minutes</p>
+        <div className="flex-1 flex flex-col items-center justify-center px-6">
+          {/* Animated rings */}
+          <div className="relative w-32 h-32 mb-8">
+            {/* Outer ring — slow spin */}
+            <div className="absolute inset-0 rounded-full border-2 border-mint/20 animate-[spin_8s_linear_infinite]" />
+            {/* Middle ring — medium spin reverse */}
+            <div className="absolute inset-3 rounded-full border-2 border-transparent border-t-mint/40 border-r-mint/40 animate-[spin_3s_linear_infinite_reverse]" />
+            {/* Inner ring — fast spin */}
+            <div className="absolute inset-6 rounded-full border-2 border-transparent border-t-mint animate-[spin_1.5s_linear_infinite]" />
+            {/* Center dot — pulse */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-3 h-3 rounded-full bg-mint animate-pulse" />
+            </div>
+            {/* Orbiting dots */}
+            <div className="absolute inset-0 animate-[spin_4s_linear_infinite]">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 w-2 h-2 rounded-full bg-mint/60" />
+            </div>
+            <div className="absolute inset-0 animate-[spin_6s_linear_infinite_reverse]">
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1 w-1.5 h-1.5 rounded-full bg-mint/40" />
+            </div>
           </div>
-          <div className="w-full max-w-[260px] space-y-3">
-            <StepRow label="Prepare wallet" done={step !== "preparing"} active={step === "preparing"} />
-            <StepRow label="Sign transaction" done={step === "executing"} active={step === "funding_ephemeral"} />
-            <StepRow label="Route through pool" done={false} active={step === "executing"} />
+
+          <p className="text-white text-[17px] font-semibold mb-1">{statusMsg}</p>
+          <p className="text-white/25 text-[13px] mb-8">This may take 1-3 minutes</p>
+
+          {/* Steps with connecting line */}
+          <div className="w-full max-w-[280px]">
+            <div className="relative pl-8">
+              {/* Vertical line */}
+              <div className="absolute left-[11px] top-1 bottom-1 w-[2px] bg-white/5" />
+              <div className="space-y-5">
+                <ProcessStep label="Prepare wallet" done={step !== "preparing"} active={step === "preparing"} />
+                <ProcessStep label="Sign transaction" done={step === "executing"} active={step === "funding_ephemeral"} />
+                <ProcessStep label="Route through pool" done={false} active={step === "executing"} />
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -246,15 +272,21 @@ function HoldButton({ onConfirm, disabled, label }: { onConfirm: () => void; dis
   );
 }
 
-function StepRow({ label, done, active }: { label: string; done: boolean; active: boolean }) {
+function ProcessStep({ label, done, active }: { label: string; done: boolean; active: boolean }) {
   return (
-    <div className="flex items-center gap-3">
-      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
-        done ? "bg-mint/20 text-mint" : active ? "bg-white/10 text-white" : "bg-white/5 text-white/20"
+    <div className="flex items-center gap-3 relative">
+      <div className={`absolute -left-8 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold z-10 transition-all duration-500 ${
+        done
+          ? "bg-mint text-[#1a1a1a]"
+          : active
+            ? "bg-mint/20 text-mint ring-4 ring-mint/10 animate-pulse"
+            : "bg-white/8 text-white/20"
       }`}>
-        {done ? "✓" : "·"}
+        {done ? "✓" : active ? "●" : "○"}
       </div>
-      <span className={`text-[13px] ${active ? "text-white font-medium" : done ? "text-mint" : "text-white/20"}`}>
+      <span className={`text-[14px] transition-all duration-300 ${
+        active ? "text-white font-semibold" : done ? "text-mint font-medium" : "text-white/20"
+      }`}>
         {label}
       </span>
     </div>

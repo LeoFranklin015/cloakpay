@@ -20,8 +20,10 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-50 bg-[#1c1c1e] border-t border-white/5">
-      <div className="flex justify-around items-center h-[56px] max-w-lg mx-auto pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 inset-x-0 z-50 bg-[#1c1c1e] border-t border-white/5"
+      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+    >
+      <div className="flex justify-around items-center h-[52px] max-w-lg mx-auto">
         {TABS.map((tab) => {
           const active = pathname === tab.href;
           return (
