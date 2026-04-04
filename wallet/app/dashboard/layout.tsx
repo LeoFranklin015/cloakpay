@@ -6,9 +6,9 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
-      <div className="safe-bottom">{children}</div>
+    <div className="flex flex-col flex-1 min-h-dvh">
+      {children}
       <BottomNav />
-    </>
+    </div>
   );
 }

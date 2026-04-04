@@ -57,7 +57,7 @@ export default function DashboardHome() {
   const networkTxs = transactions.filter((t) => t.network === network);
 
   return (
-    <div className="flex flex-col max-w-lg mx-auto w-full px-4 pt-5 pb-4">
+    <div className="flex flex-col max-w-lg mx-auto w-full px-4 pt-5 pb-4 safe-bottom">
       {/* Header */}
       <div className="flex items-center justify-between mb-6 animate-fade-up">
         <div className="flex items-center gap-3">

@@ -87,7 +87,9 @@ export default function SendPage() {
   }
 
   return (
-    <div className="flex flex-col max-w-lg mx-auto w-full h-full">
+    <div className="flex flex-col max-w-lg mx-auto w-full min-h-dvh"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 60px)" }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-5 pb-3">
         <button onClick={() => router.back()} className="w-9 h-9 rounded-full bg-white/[0.06] flex items-center justify-center cursor-pointer hover:bg-white/[0.1] transition-colors">
@@ -100,35 +102,33 @@ export default function SendPage() {
       {/* Amount + Recipient + Numpad */}
       {step === "amount" && (
         <div className="flex-1 flex flex-col px-5">
-          {/* Recipient — near top */}
-          <div className="pt-2">
-            <input
-              type="text"
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value)}
-              placeholder="Recipient address 0x..."
-              className="w-full h-[46px] rounded-2xl bg-white/[0.06] border border-white/5 px-4 text-[13px] text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-mint/30 transition-colors"
-            />
-          </div>
+          {/* Recipient */}
+          <input
+            type="text"
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+            placeholder="Recipient address 0x..."
+            className="w-full h-[46px] rounded-2xl bg-white/[0.06] border border-white/5 px-4 text-[13px] text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-mint/30 transition-colors mt-1"
+          />
 
-          {/* Amount display — centered in remaining space */}
-          <div className="flex-1 flex flex-col items-center justify-center">
-            <p className="text-[48px] font-bold text-white leading-none tabular-nums tracking-tight">
-              ${amount || "0"}
-            </p>
-            <p className="text-[14px] text-white/35 mt-2">USDC</p>
-          </div>
-
-          {/* Numpad + Button — bottom */}
-          <div className="pb-2">
-            <AmountInput value={amount} onChange={setAmount} hideDisplay />
-            <div className="pt-3">
-              <HoldButton
-                onConfirm={handleSend}
-                disabled={!amount || parseFloat(amount) <= 0 || !recipient}
-                label="Hold to send"
-              />
+          {/* Amount — takes remaining space, centers */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-[44px] font-bold text-white leading-none tabular-nums tracking-tight">
+                ${amount || "0"}
+              </p>
+              <p className="text-[13px] text-white/35 mt-1.5">USDC</p>
             </div>
+          </div>
+
+          {/* Numpad + Hold button — anchored to bottom */}
+          <AmountInput value={amount} onChange={setAmount} hideDisplay />
+          <div className="pt-3">
+            <HoldButton
+              onConfirm={handleSend}
+              disabled={!amount || parseFloat(amount) <= 0 || !recipient}
+              label="Hold to send"
+            />
           </div>
         </div>
       )}

@@ -49,7 +49,7 @@ export default function RootLayout({
       </head>
       <body className="fixed inset-0 flex flex-col overflow-hidden bg-bg text-primary">
         <WalletProvider>
-          <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-none">
+          <div className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden overscroll-none">
             {children}
           </div>
         </WalletProvider>
