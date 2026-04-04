@@ -7,7 +7,7 @@ import { Spinner } from "@/components/Spinner";
 import { ChevronRight } from "lucide-react";
 
 export default function AuthPage() {
-  const { create, login, loading, error, account, storedAccounts } = useWallet();
+  const { create, login, discoverPasskey, loading, error, account, storedAccounts } = useWallet();
   const [username, setUsername] = useState("");
   const [mode, setMode] = useState<"welcome" | "create" | "accounts">("welcome");
   const router = useRouter();
@@ -56,7 +56,7 @@ export default function AuthPage() {
             </button>
             <button
               onClick={() =>
-                storedAccounts.length > 0 ? setMode("accounts") : handleLogin()
+                storedAccounts.length > 0 ? setMode("accounts") : discoverPasskey()
               }
               disabled={loading}
               className="w-full h-[56px] rounded-full border-2 border-white/40 text-[#1a1a1a] text-[16px] font-semibold active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer flex items-center justify-center"
@@ -98,7 +98,7 @@ export default function AuthPage() {
             {storedAccounts.map((acc) => (
               <button
                 key={acc.credentialId}
-                onClick={() => handleLogin(acc.credentialId)}
+                onClick={() => discoverPasskey()}
                 disabled={loading}
                 className="w-full flex items-center gap-3.5 p-4 rounded-2xl bg-white/80 backdrop-blur-sm active:scale-[0.98] transition-all text-left disabled:opacity-30 cursor-pointer"
               >
@@ -113,7 +113,7 @@ export default function AuthPage() {
               </button>
             ))}
             <button
-              onClick={() => handleLogin()}
+              onClick={() => discoverPasskey()}
               disabled={loading}
               className="w-full h-[56px] rounded-full border-2 border-white/40 text-[#1a1a1a] text-[16px] font-semibold active:scale-[0.98] transition-all disabled:opacity-30 cursor-pointer"
             >

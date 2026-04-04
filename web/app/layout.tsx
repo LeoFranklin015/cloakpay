@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cannes Pay — Merchant Dashboard",
+  title: "Cloak Pay — Merchant Dashboard",
   description: "Merchant payment dashboard powered by WalletConnect Pay",
 };
 
