@@ -8,13 +8,14 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
-import type { Account } from "@jaw.id/core";
+import { Account } from "@jaw.id/core";
 import {
   createAccount,
   restoreAccount,
   silentRestore,
   restoreOnChain,
   getStoredAccounts,
+  getAccountConfig,
   logout as jawLogout,
   BASE_SEPOLIA,
 } from "./jaw";
@@ -140,55 +141,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Discover passkey from native OS picker (empty allowCredentials triggers iCloud Keychain / system picker)
+  // Import passkey from cloud backup (iCloud Keychain / system picker)
+  // Uses Account.import() which triggers WebAuthn discoverable credential flow,
+  // looks up the publicKey from JAW's backend, and stores everything in localStorage
   const discoverPasskey = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const challenge = crypto.getRandomValues(new Uint8Array(32));
-      const credential = await navigator.credentials.get({
-        publicKey: {
-          challenge,
-          rpId: window.location.hostname,
-          allowCredentials: [], // Empty = show native passkey picker
-          userVerification: "preferred",
-          timeout: 60000,
-        },
-      }) as PublicKeyCredential | null;
-
-      if (!credential) throw new Error("No passkey selected");
-
-      // Convert rawId to base64url credentialId
-      const rawId = new Uint8Array(credential.rawId);
-      const base64 = btoa(String.fromCharCode(...rawId))
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-
-      // Try to find this credential in stored accounts
-      const stored = getStoredAccounts();
-      const match = stored.find((a) => a.credentialId === base64);
-
-      if (match) {
-        // Found in storage — restore directly (no second WebAuthn prompt)
-        const acc = await silentRestore(base64, match.publicKey as `0x${string}`);
-        const name = acc.getMetadata()?.username ?? "Wallet";
-        setAccount(acc);
-        setAddress(acc.address);
-        setUsername(name);
-        await registerWithServer(acc.address, name);
-      } else {
-        // Not in localStorage — try Account.get with the discovered credentialId
-        // This will fail if the account isn't in JAW's storage, but it's worth trying
-        const acc = await restoreAccount(base64);
-        const name = acc.getMetadata()?.username ?? "Wallet";
-        setAccount(acc);
-        setAddress(acc.address);
-        setUsername(name);
-        await registerWithServer(acc.address, name);
-      }
+      const config = getAccountConfig();
+      const acc = await Account.import(config);
+      const name = acc.getMetadata()?.username ?? "Wallet";
+      setAccount(acc);
+      setAddress(acc.address);
+      setUsername(name);
+      await registerWithServer(acc.address, name);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to discover passkey");
+      setError(e instanceof Error ? e.message : "Failed to import passkey");
     } finally {
       setLoading(false);
     }
