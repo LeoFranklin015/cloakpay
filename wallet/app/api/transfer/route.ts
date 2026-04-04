@@ -5,6 +5,7 @@ import {
   updateTransaction,
   insertBurner,
   updateBurnerStatus,
+  getActiveBurner,
 } from "@/lib/db";
 import { createUnlinkClients, BurnerWallet } from "@/lib/unlink";
 import { TESTNET_USDC, TESTNET_USDC_DECIMALS, TESTNET_USDC_SYMBOL } from "@/lib/constants";
@@ -17,7 +18,6 @@ import { TESTNET_ENGINE_URL } from "@/lib/constants";
 import { createWalletClient, createPublicClient, http, parseAbi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
-import * as bip39 from "bip39";
 
 const UNLINK_API_KEY = process.env.UNLINK_API_KEY!;
 const FUNDING_PRIVATE_KEY = process.env.FUNDING_PRIVATE_KEY! as `0x${string}`;
@@ -28,22 +28,6 @@ const ERC20_ABI = parseAbi([
   "function transfer(address, uint256) returns (bool)",
 ]);
 
-/**
- * POST /api/transfer
- *
- * Replicates the EXACT privateTransfer.js flow:
- * 1. Setup EVM wallet + Unlink account
- * 2. ensureErc20Approval
- * 3. deposit into pool
- * 4. BurnerWallet.create
- * 5. burner.fundFromPool
- * 6. Poll burner status
- * 7. Burner transfer to recipient
- * 8. Dispose burner
- *
- * Instead of a raw private key, we use a server-side ephemeral key
- * that gets funded by the JAW account first (client sends USDC to it).
- */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -64,16 +48,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/**
- * Phase "prepare": Create an ephemeral EVM key, return its address.
- * Client will send USDC from JAW to this address.
- */
 async function handlePrepare(body: { ownerAddress: string; amount: string }) {
   try {
     const { ownerAddress, amount } = body;
     console.log("[transfer:prepare] ownerAddress:", ownerAddress, "amount:", amount);
 
-    const account = getAccount(ownerAddress);
+    const account = await getAccount(ownerAddress);
     console.log("[transfer:prepare] DB account:", account ? "found" : "not found", "hasUnlink:", !!account?.unlink_mnemonic);
 
     if (!account?.unlink_mnemonic) {
@@ -88,7 +68,7 @@ async function handlePrepare(body: { ownerAddress: string; amount: string }) {
       Math.round(parseFloat(amount) * 10 ** TRANSFER_AMOUNT_DECIMALS)
     ).toString();
 
-    insertBurner(ownerAddress, ephemeralAccount.address, ephemeralKey, "testnet", TESTNET_USDC, amountRaw);
+    await insertBurner(ownerAddress, ephemeralAccount.address, ephemeralKey, "testnet", TESTNET_USDC, amountRaw);
     console.log("[transfer:prepare] Ephemeral:", ephemeralAccount.address, "amount:", amountRaw);
 
     return NextResponse.json({
@@ -102,10 +82,6 @@ async function handlePrepare(body: { ownerAddress: string; amount: string }) {
   }
 }
 
-/**
- * Phase "execute": Client has sent USDC to ephemeral address.
- * Now run the full privateTransfer.js flow server-side.
- */
 async function handleExecute(body: {
   ownerAddress: string;
   recipientAddress: string;
@@ -114,15 +90,13 @@ async function handleExecute(body: {
 }) {
   const { ownerAddress, recipientAddress, amount, ephemeralAddress } = body;
 
-  const dbAccount = getAccount(ownerAddress);
+  const dbAccount = await getAccount(ownerAddress);
   if (!dbAccount?.unlink_mnemonic) {
     return NextResponse.json({ error: "No Unlink account" }, { status: 400 });
   }
 
   // Get the ephemeral key from DB
-  const burnerRow = await import("@/lib/db").then(m =>
-    m.getActiveBurner(ownerAddress, "testnet")
-  );
+  const burnerRow = await getActiveBurner(ownerAddress, "testnet");
   if (!burnerRow || burnerRow.burner_address.toLowerCase() !== ephemeralAddress.toLowerCase()) {
     return NextResponse.json({ error: "Ephemeral wallet not found" }, { status: 400 });
   }
@@ -131,7 +105,7 @@ async function handleExecute(body: {
   const amountRaw = burnerRow.amount;
 
   // Record transaction
-  const txRow = insertTransaction({
+  const txRow = await insertTransaction({
     ownerAddress,
     type: "transfer",
     network: "testnet",
@@ -140,10 +114,10 @@ async function handleExecute(body: {
     token: TESTNET_USDC,
     recipient: recipientAddress,
   });
-  const txId = Number(txRow.lastInsertRowid);
+  const txId = txRow.insertedId;
 
-  // ── Step 1: Setup EVM wallet + Unlink account (like privateTransfer.js) ──
-  updateTransaction(txId, { status: "setup" });
+  // ── Step 1: Setup EVM wallet + Unlink account ──
+  await updateTransaction(txId, { status: "setup" });
 
   const evmAccount = privateKeyToAccount(ephemeralKey);
   const publicClient = createPublicClient({ chain: baseSepolia, transport: http() });
@@ -165,8 +139,8 @@ async function handleExecute(body: {
 
   await client.ensureRegistered();
 
-  // ── Step 1b: Fund ephemeral with ETH for gas from funding wallet ──
-  updateTransaction(txId, { status: "funding_gas" });
+  // ── Step 1b: Fund ephemeral with ETH for gas ──
+  await updateTransaction(txId, { status: "funding_gas" });
   console.log("[transfer:execute] Funding ephemeral", evmAccount.address, "with ETH for gas...");
 
   const fundingAccount = privateKeyToAccount(FUNDING_PRIVATE_KEY);
@@ -192,14 +166,13 @@ async function handleExecute(body: {
     await new Promise((r) => setTimeout(r, 2000));
   }
   if (ethBal === BigInt(0)) {
-    updateTransaction(txId, { status: "failed" });
-    return NextResponse.json({ error: "Failed to fund ephemeral with ETH", txId }, { status: 500 });
+    await updateTransaction(txId, { status: "failed" });
+    return NextResponse.json({ error: "Failed to fund ephemeral with ETH", txId: txId.toString() }, { status: 500 });
   }
 
   // ── Step 2: Check USDC + Approve Permit2 ──
-  updateTransaction(txId, { status: "approving" });
+  await updateTransaction(txId, { status: "approving" });
 
-  // Verify USDC arrived from JAW
   let tokenBalance = BigInt(0);
   for (let i = 0; i < 10; i++) {
     tokenBalance = await publicClient.readContract({
@@ -214,10 +187,10 @@ async function handleExecute(body: {
   }
 
   if (tokenBalance === BigInt(0)) {
-    updateTransaction(txId, { status: "failed" });
+    await updateTransaction(txId, { status: "failed" });
     return NextResponse.json({
       error: `Ephemeral wallet ${evmAccount.address} has no USDC. JAW transfer may not have confirmed yet.`,
-      txId,
+      txId: txId.toString(),
     }, { status: 400 });
   }
 
@@ -226,10 +199,10 @@ async function handleExecute(body: {
   console.log("[transfer:execute] Permit2 approved");
 
   // ── Step 3: Deposit into privacy pool ──
-  updateTransaction(txId, { status: "depositing" });
+  await updateTransaction(txId, { status: "depositing" });
 
   const deposit = await client.deposit({ token: TESTNET_USDC, amount: amountRaw });
-  updateTransaction(txId, { unlinkTxId: deposit.txId });
+  await updateTransaction(txId, { unlinkTxId: deposit.txId });
 
   await client.pollTransactionStatus(deposit.txId, {
     intervalMs: 3000,
@@ -245,12 +218,12 @@ async function handleExecute(body: {
   }
 
   // ── Step 4: Create burner wallet ──
-  updateTransaction(txId, { status: "creating_burner" });
+  await updateTransaction(txId, { status: "creating_burner" });
 
   const burner = await BurnerWallet.create();
 
   // ── Step 5: Fund burner from pool ──
-  updateTransaction(txId, { status: "funding_burner" });
+  await updateTransaction(txId, { status: "funding_burner" });
 
   const { apiClient, accountKeys, envInfo } =
     await createUnlinkClients(dbAccount.unlink_mnemonic);
@@ -272,14 +245,14 @@ async function handleExecute(body: {
     const statusObj = await burner.getStatus(apiClient);
     if (statusObj.status === "funded") break;
     if (statusObj.status === "gas_funding_failed") {
-      updateTransaction(txId, { status: "failed" });
-      return NextResponse.json({ error: "Gas funding failed", txId }, { status: 500 });
+      await updateTransaction(txId, { status: "failed" });
+      return NextResponse.json({ error: "Gas funding failed", txId: txId.toString() }, { status: 500 });
     }
     await new Promise((r) => setTimeout(r, 3000));
   }
 
   // ── Step 7: Burner transfer to recipient ──
-  updateTransaction(txId, { status: "sending" });
+  await updateTransaction(txId, { status: "sending" });
 
   const burnerWalletClient = createWalletClient({
     account: burner.toViemAccount(),
@@ -302,16 +275,16 @@ async function handleExecute(body: {
   });
 
   await publicClient.waitForTransactionReceipt({ hash: txHash });
-  updateTransaction(txId, { status: "completed", txHash });
+  await updateTransaction(txId, { status: "completed", txHash });
 
   // ── Step 8: Dispose burner ──
   try { await burner.dispose(apiClient); } catch { /* ok */ }
   await burner.deleteKey();
-  updateBurnerStatus(ephemeralAddress, "disposed");
+  await updateBurnerStatus(ephemeralAddress, "disposed");
 
   return NextResponse.json({
     success: true,
-    txId,
+    txId: txId.toString(),
     txHash,
     burnerAddress: burner.address,
   });

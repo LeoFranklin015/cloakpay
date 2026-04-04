@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Always save the account first
-    upsertAccount(address, username);
-    let account = getAccount(address);
+    await upsertAccount(address, username);
+    let account = await getAccount(address);
 
     // Try to set up Unlink (non-blocking — don't fail the whole registration)
     if (!account?.unlink_mnemonic) {
@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
         const client = await createUnlinkClient(mnemonic);
         await client.ensureRegistered();
         const unlinkAddress = await client.getAddress();
-        setUnlinkMnemonic(address, mnemonic, unlinkAddress);
-        account = getAccount(address);
+        await setUnlinkMnemonic(address, mnemonic, unlinkAddress);
+        account = await getAccount(address);
         console.log("[account] Unlink registered:", unlinkAddress);
       } catch (unlinkErr) {
         console.error("[account] Unlink registration failed (non-fatal):", unlinkErr);
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "address required" }, { status: 400 });
   }
 
-  const account = getAccount(address);
+  const account = await getAccount(address);
   if (!account) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
       const client = await createUnlinkClient(mnemonic);
       await client.ensureRegistered();
       const unlinkAddress = await client.getAddress();
-      setUnlinkMnemonic(address, mnemonic, unlinkAddress);
+      await setUnlinkMnemonic(address, mnemonic, unlinkAddress);
       console.log("[account] Unlink registered on GET:", unlinkAddress);
       return NextResponse.json({
         address: account.address,

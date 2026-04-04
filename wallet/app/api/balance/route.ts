@@ -82,7 +82,7 @@ export async function GET(req: NextRequest) {
   // --- Testnet: Unlink pool balance (USDC) ---
   // DB-dependent — isolated so it can't break the on-chain balances above
   try {
-    const account = getAccount(address);
+    const account = await getAccount(address);
     if (account?.unlink_mnemonic) {
       const unlinkClient = await createUnlinkClient(account.unlink_mnemonic);
       await unlinkClient.ensureRegistered();

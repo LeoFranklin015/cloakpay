@@ -18,9 +18,9 @@ export async function POST(req: NextRequest) {
     const action = body.action ?? "create";
 
     if (action === "create") {
-      return handleCreate(body);
+      return await handleCreate(body);
     } else if (action === "sign") {
-      return handleSign(body);
+      return await handleSign(body);
     }
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -32,26 +32,21 @@ export async function POST(req: NextRequest) {
 }
 
 // Create a new mainnet burner wallet
-function handleCreate(body: { ownerAddress: string; token: string; amount: string }) {
+async function handleCreate(body: { ownerAddress: string; token: string; amount: string }) {
   const { ownerAddress, token, amount } = body;
 
   const privateKey = generatePrivateKey();
   const burnerAccount = privateKeyToAccount(privateKey);
 
-  insertBurner(ownerAddress, burnerAccount.address, privateKey, "mainnet", token, amount);
+  await insertBurner(ownerAddress, burnerAccount.address, privateKey, "mainnet", token, amount);
 
-  console.log("[burner:create] Address:", burnerAccount.address, "Key:", privateKey);
+  console.log("[burner:create] Address:", burnerAccount.address);
 
   return NextResponse.json({ burnerAddress: burnerAccount.address });
 }
 
 /**
  * Sign WC Pay actions with the burner's private key.
- *
- * Per https://docs.walletconnect.com/payments/wallets/standalone/web:
- * - Each action has walletRpc: { chainId, method, params }
- * - method is one of: eth_signTypedData_v4, eth_sendTransaction, personal_sign
- * - Signatures must be returned in the same order as actions
  */
 async function handleSign(body: {
   ownerAddress: string;
@@ -67,7 +62,7 @@ async function handleSign(body: {
   const { ownerAddress, burnerAddress, actions } = body;
 
   // Get burner private key from DB
-  const burner = getActiveBurner(ownerAddress, "mainnet");
+  const burner = await getActiveBurner(ownerAddress, "mainnet");
   if (!burner || burner.burner_address.toLowerCase() !== burnerAddress.toLowerCase()) {
     return NextResponse.json({ error: "Burner not found" }, { status: 404 });
   }
@@ -97,9 +92,6 @@ async function handleSign(body: {
   if (needsGas) {
     const ethBal = await publicClient.getBalance({ address: burnerAccount.address });
     if (ethBal < BigInt("10000000000000")) { // < 0.00001 ETH
-      // Fund burner with minimal ETH from mainnet key
-      // Base mainnet gas is ~0.001 gwei, a tx costs ~0.000003 ETH
-      // Send 0.00003 ETH (enough for ~10 txs, costs almost nothing)
       const mainnetKey = process.env.MAINNET_PRIVATE_KEY as `0x${string}` | undefined;
       if (mainnetKey) {
         console.log("[burner:sign] Funding burner with ETH for sendTransaction...");
@@ -131,7 +123,6 @@ async function handleSign(body: {
 
     switch (method) {
       case "eth_signTypedData_v4": {
-        // parsedParams is [address, typedDataJSON]
         const typedData =
           typeof parsedParams[1] === "string"
             ? JSON.parse(parsedParams[1])
@@ -191,7 +182,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "address required" }, { status: 400 });
   }
 
-  const burner = getActiveBurner(ownerAddress, network);
+  const burner = await getActiveBurner(ownerAddress, network);
   if (!burner) {
     return NextResponse.json({ burner: null });
   }

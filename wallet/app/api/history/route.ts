@@ -7,6 +7,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "address required" }, { status: 400 });
   }
 
-  const transactions = getTransactions(address);
+  const transactions = await getTransactions(address);
   return NextResponse.json({ transactions });
 }
