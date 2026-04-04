@@ -9,8 +9,8 @@ interface AmountInputProps {
 
 export function AmountInput({ value, onChange, symbol, maxAmount }: AmountInputProps) {
   return (
-    <div className="text-center space-y-2">
-      <div className="flex items-center justify-center gap-2">
+    <div className="text-center py-8">
+      <div className="flex items-baseline justify-center">
         <input
           type="text"
           inputMode="decimal"
@@ -20,16 +20,16 @@ export function AmountInput({ value, onChange, symbol, maxAmount }: AmountInputP
             if (v.split(".").length <= 2) onChange(v);
           }}
           placeholder="0"
-          className="text-5xl font-bold text-center bg-transparent outline-none w-48 text-primary placeholder:text-tertiary"
+          className="text-6xl font-light text-center bg-transparent outline-none w-52 text-primary placeholder:text-tertiary tabular-nums tracking-tight"
         />
-        <span className="text-2xl text-secondary font-medium">{symbol}</span>
+        <span className="text-xl text-tertiary font-normal ml-1">{symbol}</span>
       </div>
       {maxAmount && (
         <button
           onClick={() => onChange(maxAmount)}
-          className="text-xs text-accent font-medium"
+          className="mt-3 text-xs text-secondary hover:text-primary transition-colors cursor-pointer"
         >
-          Max: {maxAmount} {symbol}
+          Use max — {maxAmount} {symbol}
         </button>
       )}
     </div>
