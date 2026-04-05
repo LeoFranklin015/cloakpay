@@ -14,8 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cloak Pay — Merchant Dashboard",
+  title: "CloakPay — Merchant Dashboard",
   description: "Merchant payment dashboard powered by WalletConnect Pay",
+  icons: [{ rel: "icon", url: "/logo.png", type: "image/png" }],
 };
 
 export default function RootLayout({

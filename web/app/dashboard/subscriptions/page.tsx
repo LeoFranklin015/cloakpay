@@ -184,7 +184,7 @@ export default function SubscriptionsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 w-full max-w-sm border border-zinc-200 dark:border-zinc-800 text-center space-y-4">
             <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Scan to Subscribe</h3>
-            <p className="text-xs text-zinc-500">Have the customer scan this QR with their Cannes wallet</p>
+            <p className="text-xs text-zinc-500">Have the customer scan this QR with their CloakPay wallet</p>
             <img src={qrData.dataUrl} alt="Subscription QR" className="w-64 h-64 mx-auto rounded-xl" />
             <p className="text-[10px] text-zinc-400 font-mono break-all">{`${WALLET_URL}/dashboard/subscribe?id=${qrData.id}`}</p>
             <button onClick={() => setQrData(null)}

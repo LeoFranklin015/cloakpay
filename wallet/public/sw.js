@@ -1,4 +1,4 @@
-const CACHE_NAME = "cannes-v1";
+const CACHE_NAME = "cloakpay-v1";
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", () => self.clients.claim());

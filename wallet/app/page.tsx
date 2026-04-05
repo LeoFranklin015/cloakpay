@@ -32,6 +32,7 @@ export default function AuthPage() {
       {/* Brand — sits at 40% from top */}
       <div className="flex-[3] flex items-end justify-center pb-8">
         <div className="text-center animate-fade-up">
+          <img src="/logo.png" alt="CloakPay" className="w-20 h-20 mx-auto mb-4 rounded-2xl" />
           <h1 className="text-[40px] font-bold text-[#1a1a1a] tracking-tight">CloakPay</h1>
           <p className="text-[#1a1a1a]/40 text-[15px] mt-2 font-medium">Private payments on Base</p>
         </div>

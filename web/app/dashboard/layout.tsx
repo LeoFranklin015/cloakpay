@@ -17,7 +17,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-950">
       <aside className="w-64 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col">
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-white">Cloak Pay</h1>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="CloakPay" className="w-8 h-8 rounded-lg" />
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-white">CloakPay</h1>
+          </div>
           <p className="text-xs text-zinc-500 mt-1">Merchant Dashboard</p>
         </div>
         <nav className="flex-1 p-4 space-y-1">
