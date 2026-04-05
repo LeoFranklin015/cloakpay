@@ -268,7 +268,7 @@ export default function PayPage() {
 
   return (
     <div className="flex flex-col flex-1 max-w-lg mx-auto w-full min-h-dvh"
-      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 60px)" }}
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 90px)" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-5 pb-3">

@@ -56,7 +56,7 @@ body {
 
 /* Bottom nav safe area */
 .safe-bottom {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 90px);
 }
 
 /* Animations */
